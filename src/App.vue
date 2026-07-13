@@ -20,6 +20,28 @@ const config = reactive({
 const elements    = ref([])
 const connections = ref([])
 const selected    = ref(null)   // selected element id
+
+// Shared undo snapshot function — also called by the canvas internally.
+// App-level mutations (panel delete, load) push here so undo covers all actions.
+const diagramHistory = ref([])
+function snapshotDiagram() {
+  diagramHistory.value.push({
+    elements:    JSON.parse(JSON.stringify(elements.value)),
+    connections: JSON.parse(JSON.stringify(connections.value)),
+  })
+  if (diagramHistory.value.length > 50) diagramHistory.value.shift()
+}
+
+/** Delete selected node + its connections (called from PropertiesPanel delete button) */
+function deleteSelectedNode() {
+  if (!selected.value) return
+  snapshotDiagram()
+  connections.value = connections.value.filter(
+    (c) => c.from !== selected.value && c.to !== selected.value
+  )
+  elements.value = elements.value.filter((e) => e.id !== selected.value)
+  selected.value = null
+}
 const toasts      = ref([])
 const sideTab     = ref('config') // 'config' | 'prompt'
 
@@ -152,11 +174,7 @@ function handleFileLoad(e) {
         v-if="selected"
         :element="elements.find(e => e.id === selected)"
         @update="(patch) => { const el = elements.find(e => e.id === selected); if(el) Object.assign(el, patch) }"
-        @delete="() => {
-          elements = elements.filter(e => e.id !== selected)
-          connections = connections.filter(c => c.from !== selected && c.to !== selected)
-          selected = null
-        }"
+        @delete="deleteSelectedNode"
       />
     </main>
 
