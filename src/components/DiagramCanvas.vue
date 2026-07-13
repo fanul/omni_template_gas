@@ -28,6 +28,7 @@ function addNode(type) {
     id,
     type,
     name:       type,
+    context:    '',      // free-text description written into the generated prompt
     x:          80 + (elements.value.length % 5) * 170,
     y:          80 + Math.floor(elements.value.length / 5) * 120,
     properties: [],

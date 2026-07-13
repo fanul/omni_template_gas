@@ -28,19 +28,29 @@ export function buildPrompt({ config, elements, connections }) {
   // Architecture section from diagram
   const archSection = elements.map((el) => {
     const outgoing = connections.filter((c) => c.from === el.id)
+
+    // Context: free-text description the user typed on the node
+    const contextBlock = el.context?.trim()
+      ? `  > ${el.context.trim().replace(/\n/g, '\n  > ')}`
+      : null
+
+    // Key-value custom properties
     const props = (el.properties || [])
       .filter((p) => p.key)
-      .map((p) => `    - ${p.key}: ${p.value}`)
+      .map((p) => `  - **${p.key}**: ${p.value}`)
       .join('\n')
+
+    // Outgoing connections
     const rels = outgoing.map((c) => {
       const target = elements.find((e) => e.id === c.to)
-      return `    → **${target?.name || c.to}** _(${c.label || 'relates to'})_`
+      return `  → **${target?.name || c.to}** _(${c.label || 'relates to'})_`
     }).join('\n')
 
     return [
       `### ${el.type}: ${el.name}`,
-      props || null,
-      rels || null,
+      contextBlock,
+      props  || null,
+      rels   || null,
     ].filter(Boolean).join('\n')
   }).join('\n\n')
 

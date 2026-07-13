@@ -43,7 +43,10 @@ export function serializeToXml({ config, elements, connections }) {
     const props = (el.properties || [])
       .map((p) => `      <property key="${esc(p.key)}" value="${esc(p.value)}"/>`)
       .join('\n')
-    return `    <element id="${esc(el.id)}" type="${esc(el.type)}" name="${esc(el.name)}" x="${el.x}" y="${el.y}">\n${props}\n    </element>`
+    const contextXml = el.context?.trim()
+      ? `      <context>${esc(el.context)}</context>`
+      : ''
+    return `    <element id="${esc(el.id)}" type="${esc(el.type)}" name="${esc(el.name)}" x="${el.x}" y="${el.y}">\n${contextXml}\n${props}\n    </element>`
   }).join('\n')
 
   const connsXml = connections.map((c) =>
@@ -74,11 +77,12 @@ export function parseXml(xmlString) {
   }
 
   const elements = [...doc.querySelectorAll('diagram > element')].map((el) => ({
-    id:   el.getAttribute('id'),
-    type: el.getAttribute('type'),
-    name: el.getAttribute('name'),
-    x:    parseFloat(el.getAttribute('x')) || 100,
-    y:    parseFloat(el.getAttribute('y')) || 100,
+    id:      el.getAttribute('id'),
+    type:    el.getAttribute('type'),
+    name:    el.getAttribute('name'),
+    x:       parseFloat(el.getAttribute('x')) || 100,
+    y:       parseFloat(el.getAttribute('y')) || 100,
+    context: el.querySelector('context')?.textContent?.trim() || '',
     properties: [...el.querySelectorAll('property')].map((p) => ({
       key:   p.getAttribute('key'),
       value: p.getAttribute('value'),
