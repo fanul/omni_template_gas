@@ -138,22 +138,70 @@ function undo() {
   toast('Undo ✓', 'info')
 }
 
+// ── Clipboard (Copy / Cut / Paste) ────────────────────────────────────────────
+const clipboard = ref(null)
+
 // ── Keyboard shortcuts ────────────────────────────────────────────────────────
 function onKeyDown(e) {
   const ctrl = e.ctrlKey || e.metaKey
+
+  // Don't trigger canvas shortcuts if typing in an input
+  const isInput = ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)
 
   if (ctrl && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return }
   if (ctrl && e.key === '='){ e.preventDefault(); zoomIn();  return }
   if (ctrl && e.key === '-'){ e.preventDefault(); zoomOut(); return }
   if (ctrl && e.key === '0'){ e.preventDefault(); zoomReset(); return }
 
+  // Copy
+  if (ctrl && e.key.toLowerCase() === 'c' && selected.value && !isInput) {
+    e.preventDefault()
+    const el = elements.value.find(n => n.id === selected.value)
+    if (el) {
+      clipboard.value = JSON.parse(JSON.stringify(el))
+      toast('Copied ✓', 'info')
+    }
+    return
+  }
+
+  // Cut
+  if (ctrl && e.key.toLowerCase() === 'x' && selected.value && !isInput) {
+    e.preventDefault()
+    const el = elements.value.find(n => n.id === selected.value)
+    if (el) {
+      clipboard.value = JSON.parse(JSON.stringify(el))
+      deleteSelectedNode()
+      toast('Cut ✓', 'info')
+    }
+    return
+  }
+
+  // Paste
+  if (ctrl && e.key.toLowerCase() === 'v' && clipboard.value && !isInput) {
+    e.preventDefault()
+    snapshot()
+    const id = `el-${Date.now()}-${uidSeq++}`
+    elements.value.push({
+      ...clipboard.value,
+      id,
+      x: clipboard.value.x + 20,
+      y: clipboard.value.y + 20,
+    })
+    selected.value = id
+    selectedConn.value = null
+    // Offset clipboard so multiple pastes don't perfectly overlap
+    clipboard.value.x += 20
+    clipboard.value.y += 20
+    toast('Pasted ✓', 'info')
+    return
+  }
+
   if (e.key === 'Escape') {
     if (editingId.value)    { editingId.value    = null; return }
     if (connectSource.value){ connectSource.value = null; return }
   }
 
-  if (['Delete','Backspace'].includes(e.key)) {
-    if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return
+  if (['Delete','Backspace'].includes(e.key) && !isInput) {
     if (selectedConn.value !== null) deleteConn(selectedConn.value)
     else if (selected.value)         deleteSelectedNode()
   }
